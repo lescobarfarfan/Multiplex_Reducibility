@@ -16,15 +16,18 @@ library(tidyquant)
 
 # Paths -------------------------------------------------------------------
 
-path_to_write_output <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/Resultados/"
+path_to_write_output <- "Write the path where output should be stores:\n" %>%
+    readline()
+path_to_multiplex <- "Write the path to the .Rds file containing the multiplex:\n" %>%
+    readline()
 
 # Source script containg necessary functions ------------------------------
-source_files_path <- "C:/Users/K15523/Desktop/Multiplex_Reducibility/AuxiliaryFunctions/"
+source_files_path <- paste0(getwd(), "/AuxiliaryFunctions/")
 source.files <- list.files(source_files_path)
 map(.x = paste0(source_files_path, source.files), .f = source)
 
 # Load multiplex network previously created
-multicapa_temporal <- readRDS("C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/Resultados/MulticapaTemporal_Ad.Rds")
+multicapa_temporal <- readRDS(path_to_multiplex)
 
 
 
@@ -75,3 +78,51 @@ red_plot <- reducibilidad_df %>%
 ggsave(filename = "HistoricalReducibility.pdf", plot = red_plot, device = "pdf",
        path = path_to_write_output, scale = 2, width = 19, height = 9.5,
        units = "cm", dpi = 300)
+
+
+
+# Calculate structural metrics of multiplex -------------------------------
+
+grados_temporales <- map(.x = multicapa_temporal, .f = calculate_multiplex_degree, directed = F)
+
+
+grados_temporales_df <- grados_temporales %>%
+    bind_rows(.id = "Fecha")
+grados_temporales_df$Fecha <- grados_temporales_df$Fecha %>% as.Date()
+
+grados_temporales_df %>%
+    gather(key = Capa, value = Grado, -Fecha, -Node) %>%
+    filter(Capa != "Agregada",
+           Capa != "OverlappingDeg") %>%
+    group_by(Fecha, Capa) %>%
+    summarize(`Minimum degree` = min(Grado, na.rm = T),
+              `Mean degree` = mean(Grado, na.rm = T),
+              `Maximun degree` = max(Grado, na.rm = T)) %>%
+    ungroup() %>%
+    gather(key = Serie, value = Valor, -Fecha, -Capa) %>% 
+    ggplot(aes(x = Fecha, y = Valor, group = Serie, colour = Serie)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    geom_vline(xintercept = as.Date("2018-07-02"), linetype = "longdash",
+               colour = "red", alpha = 0.7) +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    facet_wrap(~Capa) +
+    scale_colour_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "3 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-day simple moving average of max, min and mean degree per layer",
+         subtitle = "Number of connections")
+    
+
+
+
+# Node activity from degrees ----------------------------------------------
+
+node_activity <- grados_temporales_df %>% select(Fecha, Node, starts_with("Capa"))
