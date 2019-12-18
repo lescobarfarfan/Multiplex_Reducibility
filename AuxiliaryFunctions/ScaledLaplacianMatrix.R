@@ -10,7 +10,8 @@
 #' Calculate the scaled laplacian function of a graph
 #'
 #' @param mat A square adjacency matrix of a graph
-#' @param directed Boolean value to determine if mat is directed, in which case the total degree is calculated
+#' @param directed Boolean value to determine if mat is directed, in which case
+#' the total degree is calculated
 #' @return A square matrix representing the scales laplacian matrix of a graph
 #' @export
 calculate_scaled_laplacian <- function(mat, directed = F) {

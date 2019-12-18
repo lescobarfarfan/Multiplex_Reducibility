@@ -7,10 +7,13 @@
 #   -----------------------------------------------------------------------
 
 #' Obtain the optimal agregation of a multiplex network using the DeDomenico et. al (2015) method
-#' @param multilayer A named list of matrices representing a multiplex network. The aggregated matrix of the system is necessarily called 'Agregada'
-#' @return A list containing two items: the optimal aggregated network, and the reducibility of the network
+#' @param multilayer A named list of matrices representing a multiplex network.
+#' The aggregated matrix of the system is necessarily called 'Agregada'
+#' @param directed Logical value indicating if the layers are directed. Default FALSE.
+#' @return A list containing two items: the optimal aggregated network, and the
+#' reducibility of the network
 #' @export
-greedy_reduction <- function(multilayer) {
+greedy_reduction <- function(multilayer, directed = F) {
 
     # Extract the names of the layers
     initial_layers <- setdiff(names(multilayer), "Agregada")
@@ -19,7 +22,7 @@ greedy_reduction <- function(multilayer) {
     # of layers until optimal value is achieved.
 
     # Calculate laplacians and entropies per layer
-    initial_laplacians <- map(.x = multilayer, .f = calculate_scaled_laplacian)
+    initial_laplacians <- map(.x = multilayer, .f = calculate_scaled_laplacian, directed)
     initial_entropies <- map(.x = initial_laplacians, .f = calculate_von_neumann_entropy)
 
     # Entropy of the aggregated system
