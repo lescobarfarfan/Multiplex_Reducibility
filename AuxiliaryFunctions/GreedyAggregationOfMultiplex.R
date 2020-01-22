@@ -9,31 +9,33 @@
 #' Obtain the optimal agregation of a multiplex network using the DeDomenico et. al (2015) method
 #' @param multilayer A named list of matrices representing a multiplex network.
 #' The aggregated matrix of the system is necessarily called 'Agregada'
+#' @param character String to define the name of the aggregated layer
 #' @param directed Logical value indicating if the layers are directed. Default FALSE.
+#' @param weighted Logical value indicating if the layers are weighted. Default FALSE.
 #' @return A list containing two items: the optimal aggregated network, and the
 #' reducibility of the network
 #' @export
-greedy_reduction <- function(multilayer, directed = F) {
+greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
 
     # Extract the names of the layers
-    initial_layers <- setdiff(names(multilayer), "Agregada")
+    initial_layers <- setdiff(names(multilayer), name_agg)
 
     # Create initial values for a while loop that will perform the aggregation
     # of layers until optimal value is achieved.
 
     # Calculate laplacians and entropies per layer
-    initial_laplacians <- map(.x = multilayer, .f = calculate_scaled_laplacian, directed)
+    initial_laplacians <- map(.x = multilayer, .f = calculate_scaled_laplacian, directed, weighted)
     initial_entropies <- map(.x = initial_laplacians, .f = calculate_von_neumann_entropy)
 
     # Entropy of the aggregated system
-    entropy_agg_sys <- initial_entropies[["Agregada"]]
+    entropy_agg_sys <- initial_entropies[[name_agg]]
 
     # Entropy of the completeley differentiated system (all layers)
     initial_entropy_all_layers <- sum(unlist(initial_entropies[initial_layers]))
-    initial_no_layers <- length(multilayer)
+    initial_no_layers <- length(multilayer) - 1
 
     # Initial relative entropy
-    initial_rel_entropy <- 1 - ((initial_entropy_all_layers/initial_no_layers - 1)/entropy_agg_sys)
+    initial_rel_entropy <- 1 - (initial_entropy_all_layers/initial_no_layers)*(1/entropy_agg_sys)
 
     # Initialize all objects that will store important values of each
     # aggregation obtained with the greedy algorithm
@@ -72,10 +74,15 @@ greedy_reduction <- function(multilayer, directed = F) {
             }
 
             # lets find the smallest value (to merge such pair of matrices)
-            min_jsd <- min(mat_jsd[mat_jsd != 0])
+            min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+
+            if (is.infinite(min_jsd)) {
+                rel_ent_control <- 0
+                break()
+            }
 
             # Get indices inside matrix to know which layers are
-            indices <- which(mat_jsd == min_jsd, arr.ind = T)
+            indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
 
             # Since the matriz might be symmetric, the previous command might return
             # a matrix, we keep only the rownames
@@ -83,7 +90,11 @@ greedy_reduction <- function(multilayer, directed = F) {
 
             # We create the new multilayer system
             aux_new_multilayer <- multilayer[[layers_to_merge[1]]] + multilayer[[layers_to_merge[2]]]
-            aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            if (isFALSE(directed) & isFALSE(weighted)) {
+                aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            } else if (isFALSE(weighted)) {
+                aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            }
 
             # Create the new multilayer system
             new_multilayer <- multilayer[setdiff(names(multilayer), layers_to_merge)]
@@ -93,13 +104,13 @@ greedy_reduction <- function(multilayer, directed = F) {
             aggregation_steps[[paste0(layers_to_merge[1], "+", layers_to_merge[2])]] <- new_multilayer
 
             # Calculations of all new metrics for new aggregated system
-            layers <- setdiff(names(new_multilayer), "Agregada")
+            layers <- setdiff(names(new_multilayer), name_agg)
             laplacians <- map(.x = new_multilayer, .f = calculate_scaled_laplacian)
             entropies <- map(.x = laplacians, .f = calculate_von_neumann_entropy)
 
             entropy_all_layers <- sum(unlist(entropies[layers]))
             no_layers <- length(layers)
-            rel_entropy <- 1 - ((entropy_all_layers/no_layers)/entropy_agg_sys)
+            rel_entropy <- 1 - (entropy_all_layers/no_layers)*(1/entropy_agg_sys)
 
             relative_entropies_per_step <- c(relative_entropies_per_step,
                                              rel_entropy)
@@ -134,10 +145,15 @@ greedy_reduction <- function(multilayer, directed = F) {
             }
 
             # lets find the smallest value (to merge such pair of matrices)
-            min_jsd <- min(mat_jsd[mat_jsd != 0])
+            min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+
+            if (is.infinite(min_jsd)) {
+                rel_ent_control <- 0
+                break()
+            }
 
             # Get indices inside matrix to know which layers are
-            indices <- which(mat_jsd == min_jsd, arr.ind = T)
+            indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
 
             # Since the matriz might be symmetric, the previous command might return
             # a matrix, we keep only the rownames
@@ -145,7 +161,11 @@ greedy_reduction <- function(multilayer, directed = F) {
 
             # We create the new multilayer system
             aux_new_multilayer <- new_multilayer[[layers_to_merge[1]]] + new_multilayer[[layers_to_merge[2]]]
-            aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            if (isFALSE(directed) & isFALSE(weighted)) {
+                aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            } else if (isFALSE(weighted)) {
+                aux_new_multilayer[aux_new_multilayer > 1] <- 1
+            }
 
             # Create the new multilayer system
             new_multilayer <- new_multilayer[setdiff(names(new_multilayer),
@@ -156,13 +176,13 @@ greedy_reduction <- function(multilayer, directed = F) {
             aggregation_steps[[paste0(layers_to_merge[1], "+", layers_to_merge[2])]] <- new_multilayer
 
             # Calculations of all new metrics for new aggregated system
-            layers <- setdiff(names(new_multilayer), "Agregada")
+            layers <- setdiff(names(new_multilayer), name_agg)
             laplacians <- map(.x = new_multilayer, .f = calculate_scaled_laplacian)
             entropies <- map(.x = laplacians, .f = calculate_von_neumann_entropy)
 
             entropy_all_layers <- sum(unlist(entropies[layers]))
             no_layers <- length(layers)
-            rel_entropy <- 1 - ((entropy_all_layers/no_layers)/entropy_agg_sys)
+            rel_entropy <- 1 - (entropy_all_layers/no_layers)*(1/entropy_agg_sys)
 
             relative_entropies_per_step <- c(relative_entropies_per_step,
                                              rel_entropy)

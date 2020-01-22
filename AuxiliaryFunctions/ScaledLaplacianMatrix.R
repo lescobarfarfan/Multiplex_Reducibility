@@ -11,17 +11,23 @@
 #'
 #' @param mat A square adjacency matrix of a graph
 #' @param directed Boolean value to determine if mat is directed, in which case
+#' @param weighted Boolean value to determine if mat is weighted, in which case
+#' the total weighted degree is calculate
 #' the total degree is calculated
 #' @return A square matrix representing the scales laplacian matrix of a graph
 #' @export
-calculate_scaled_laplacian <- function(mat, directed = F) {
-    
-    if (directed) {
+calculate_scaled_laplacian <- function(mat, directed = F, weighted = F) {
+
+    if (isTRUE(directed) & isTRUE(weighted)) {
         nodes_degree <- rowSums(mat) + colSums(mat)
+    } else if (isTRUE(directed) & isFALSE(weighted)) {
+        nodes_degree <- rowSums(mat) + colSums(mat)
+    } else if (isFALSE(directed) & isTRUE(weighted)) {
+        nodes_degree = rowSums(mat)
     } else {
-        nodes_degree <- rowSums(mat)
+        nodes_degree = rowSums(mat)
     }
-    
+
 
     mat_degree <- diag(x = nodes_degree, names = T,
                        nrow = length(nodes_degree),

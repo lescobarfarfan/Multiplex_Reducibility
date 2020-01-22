@@ -12,8 +12,6 @@ library(Matrix)
 library(tictoc)
 library(tidyquant)
 
-
-
 # Paths -------------------------------------------------------------------
 
 path_to_write_output <- "Write the path where output should be stores:\n" %>%
@@ -21,10 +19,21 @@ path_to_write_output <- "Write the path where output should be stores:\n" %>%
 path_to_multiplex <- "Write the path to the .Rds file containing the multiplex:\n" %>%
     readline()
 
+# path_current_file <- rstudioapi::getActiveDocumentContext()$path
+# path_current_file <- str_split(string = path_current_file, pattern = "/")
+# path_current_file <- unlist(path_current_file)
+# path_current_file <- path_current_file[1:(length(path_current_file) - 1)]
+# path_current_file <- paste0(path_current_file, collapse = "/")
+# path_current_file <- paste0(path_current_file, "/")
+
+path_to_aux_functions <- "Write the path to the directory with the auxiliary functions" %>%
+    readline()
+
+
 # Source script containg necessary functions ------------------------------
-source_files_path <- paste0(getwd(), "/AuxiliaryFunctions/")
-source.files <- list.files(source_files_path)
-map(.x = paste0(source_files_path, source.files), .f = source)
+# source_files_path <- paste0(path_to_aux_functions, "AuxiliaryFunctions/")
+source.files <- list.files(path_to_aux_functions)
+map(.x = paste0(path_to_aux_functions, source.files), .f = source, verbose = F)
 
 # Load multiplex network previously created
 multicapa_temporal <- readRDS(path_to_multiplex)
@@ -41,7 +50,10 @@ names_layers <- names_layers[-length(names_layers)]
 fechas <- names(multicapa_temporal)
 
 tic()
-optimal_temporal <- map(.x = multicapa_temporal, .f = greedy_reduction)
+optimal_temporal <- pmap(.l = list(multilayer = multicapa_temporal,
+                                   name_agg = "Agregada", directed = T,
+                                   weighted = T),
+                         .f = greedy_reduction)
 toc()
 
 # Save the output
@@ -109,7 +121,7 @@ plot_degrees_temporal_by_layer <- grados_temporales_df %>%
               `Mean degree` = mean(Grado, na.rm = T),
               `Maximun degree` = max(Grado, na.rm = T)) %>%
     ungroup() %>%
-    gather(key = Serie, value = Valor, -Fecha, -Capa) %>% 
+    gather(key = Serie, value = Valor, -Fecha, -Capa) %>%
     ggplot(aes(x = Fecha, y = Valor, group = Serie, colour = Serie)) +
     geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
     geom_vline(xintercept = as.Date("2018-07-02"), linetype = "longdash",
@@ -133,7 +145,7 @@ plot_degrees_temporal_by_layer <- grados_temporales_df %>%
 ggsave(filename = "HistoricalDegreeByLayer.pdf",
        plot = plot_degrees_temporal_by_layer, device = "pdf",
        path = path_to_write_output, scale = 2, width = 19, height = 9.5,
-       units = "cm", dpi = 300)    
+       units = "cm", dpi = 300)
 
 
 
@@ -154,7 +166,7 @@ node_activity <- node_activity %>%
 
 
 # Active nodes per layer --------------------------------------------------
-actives_nodes_per_layer <- node_activity %>% 
+actives_nodes_per_layer <- node_activity %>%
     gather(key = Capa, value = Status, -Fecha, -Node) %>%
     group_by(Fecha, Capa) %>%
     summarize(NoActiveNodes = sum(Status, na.rm = T)) %>%
@@ -184,7 +196,7 @@ ggsave(filename = "NoActivesNodesPerLayer.pdf", plot = actives_nodes_per_layer,
 # Active layers per node --------------------------------------------------
 
 active_layers_per_node <- node_activity %>%
-    gather(key = Capa, value = Status, -Fecha, -Node) %>% 
+    gather(key = Capa, value = Status, -Fecha, -Node) %>%
     group_by(Fecha, Node) %>%
     summarize(NoActiveLayers = sum(Status, na.rm = T)) %>%
     ggplot(aes(x = Fecha, y = NoActiveLayers, group = Node, colour = Node)) +
