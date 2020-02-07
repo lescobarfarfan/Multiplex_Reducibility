@@ -48,6 +48,7 @@ names_layers <- names_layers[-length(names_layers)]
 
 
 fechas <- names(multicapa_temporal)
+fechas <- as.Date(fechas)
 
 tic()
 optimal_temporal <- pmap(.l = list(multilayer = multicapa_temporal,
@@ -88,7 +89,7 @@ red_plot <- reducibilidad_df %>%
           axis.text.x = element_text(angle = 90)) +
     ggtitle(label = "20-day simple moving average of the reducibility of the system",
             subtitle = paste0("From ", fechas[1], " to ", fechas[2])) +
-    scale_x_date(date_breaks = "1 month", date_labels = format("%Y-%m"))
+    scale_x_date(date_breaks = "6 month", date_labels = format("%Y-%m"))
 
 
 ggsave(filename = "HistoricalReducibility.pdf", plot = red_plot, device = "pdf",
@@ -138,7 +139,7 @@ plot_degrees_temporal_by_layer <- grados_temporales_df %>%
           plot.subtitle = element_text(size = 14)) +
     facet_wrap(~Capa) +
     scale_colour_viridis_d(option = "D") +
-    scale_x_date(date_breaks = "3 months", date_labels = format("%Y-%m")) +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
     labs(title = "20-day simple moving average of max, min and mean degree per layer",
          subtitle = "Number of connections")
 
@@ -183,7 +184,7 @@ actives_nodes_per_layer <- node_activity %>%
           plot.title = element_text(size = 16, face = "bold"),
           plot.subtitle = element_text(size = 14)) +
     scale_color_viridis_d(option = "D") +
-    scale_x_date(date_breaks = "3 months", date_labels = format("%Y-%m")) +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
     labs(title = "20-days moving average of the number of active banks per layer",
          subtitle = "Number of institutions")
 
@@ -214,7 +215,7 @@ active_layers_per_node <- node_activity %>%
           plot.title = element_text(size = 16, face = "bold"),
           plot.subtitle = element_text(size = 14)) +
     facet_wrap(~Node, scales = "free_y") +
-    scale_x_date(date_breaks = "3 months", date_labels = format("%Y-%m")) +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
     scale_color_viridis_d(option = "D") +
     labs(title = "20-days moving average of the number of active layers per node",
          subtitle = "Number of markets")

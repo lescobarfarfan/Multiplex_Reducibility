@@ -1,0 +1,5 @@
+1) Check if the implementation of the Laplacian for directed-weighted graphs gives good results
+2) Check stopping conditions for the greedy algorithm, specifically, check that the implemented
+conditions are consistent with the methodology presented in the paper.
+3) Check why the degree and the number of active layers are identical for the undirected-unweighted and
+the directed-weighted multilayers.
