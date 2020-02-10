@@ -27,6 +27,3 @@ calculate_multiplex_degree <- function(multilayer, directed = FALSE) {
   degrees_df <- degrees_df %>% mutate(OverlappingDeg = rowSums(degrees_df[2:ncol(degrees_df)]) - Agregada)
   return(degrees_df)
 }
-
-
-#' Function to calculate the participation 

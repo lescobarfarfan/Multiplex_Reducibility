@@ -50,7 +50,7 @@ greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
     agg_step <- 1
 
     # While loop
-    while (rel_ent_control > 0) {
+    while (rel_ent_control > 0 & length(aggregation_steps) < initial_no_layers) {
         if (agg_step == 1) {
             # Create an empty matrix to store the Jensen-Shannon distances between
             # all pairs of layers
@@ -74,7 +74,8 @@ greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
             }
 
             # lets find the smallest value (to merge such pair of matrices)
-            min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+            # min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+            min_jsd <- min(mat_jsd[mat_jsd != 0])
 
             if (is.infinite(min_jsd)) {
                 rel_ent_control <- 0
@@ -82,7 +83,8 @@ greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
             }
 
             # Get indices inside matrix to know which layers are
-            indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
+            # indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
+            indices <- which(mat_jsd == min_jsd, arr.ind = T)
 
             # Since the matriz might be symmetric, the previous command might return
             # a matrix, we keep only the rownames
@@ -145,7 +147,8 @@ greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
             }
 
             # lets find the smallest value (to merge such pair of matrices)
-            min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+            # min_jsd <- abs(min(mat_jsd[mat_jsd != 0]))
+            min_jsd <- min(mat_jsd[mat_jsd != 0])
 
             if (is.infinite(min_jsd)) {
                 rel_ent_control <- 0
@@ -153,7 +156,8 @@ greedy_reduction <- function(multilayer, name_agg, directed = F, weighted = F) {
             }
 
             # Get indices inside matrix to know which layers are
-            indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
+            # indices <- which(abs(mat_jsd) == abs(min_jsd), arr.ind = T)
+            indices <- which(mat_jsd == min_jsd, arr.ind = T)
 
             # Since the matriz might be symmetric, the previous command might return
             # a matrix, we keep only the rownames
