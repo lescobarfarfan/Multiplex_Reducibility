@@ -26,7 +26,7 @@ path_to_multiplex <- "Write the path to the .Rds file containing the multiplex:\
 # path_current_file <- paste0(path_current_file, collapse = "/")
 # path_current_file <- paste0(path_current_file, "/")
 
-path_to_aux_functions <- "Write the path to the directory with the auxiliary functions" %>%
+path_to_aux_functions <- "Write the path to the directory with the auxiliary functions:\n" %>%
     readline()
 
 

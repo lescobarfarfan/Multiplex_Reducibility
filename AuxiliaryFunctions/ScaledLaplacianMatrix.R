@@ -100,8 +100,20 @@ calculate_scaled_laplacian <- function(mat, directed = F, weighted = F) {
 
     if (isTRUE(directed) & isTRUE(weighted)) {
         laplacian <- laplacian_directed(mat = mat, weighted = T)
+        # Scaling
+        c_norm <- 1/(2*sum(mat))
+
+        # Calculamos Laplaciana escalada
+        laplacian <- c_norm * laplacian
+
     } else if (isTRUE(directed) & isFALSE(weighted)) {
         laplacian <- laplacian_directed(mat = mat, weighted = F)
+        # Scaling
+        c_norm <- 1/(2*sum(mat))
+
+        # Calculamos Laplaciana escalada
+        laplacian <- c_norm * laplacian
+
     } else if (isFALSE(directed) & isTRUE(weighted)) {
         nodes_degree <- rowSums(mat)
         mat_degree <- diag(x = nodes_degree, names = T,
