@@ -104,9 +104,138 @@ ggsave(filename = "HistoricalReducibility.pdf", plot = red_plot, device = "pdf",
 
 
 # Multiplex degree --------------------------------------------------------
+
+# Si tenemos un sistema dirigido sin pesos --------------------------------
 grados_temporales <- map(.x = multicapa_temporal,
                          .f = calculate_multiplex_degree,
-                         directed = F)
+                         directed = T, weighted = F)
+
+grados_in <- map(.x = grados_temporales, .f = function(lista) return(lista[["Deg_In"]]))
+names(grados_in) <- fechas
+grados_in <- grados_in %>%
+    bind_rows(.id = "Fecha")
+grados_in$Fecha <- grados_in$Fecha %>% as.Date()
+plot_degrees_in_temporal_by_layer <- grados_in %>%
+    gather(key = Capa, value = Grado, -Fecha, -Node) %>%
+    filter(Capa != "Agregada",
+           Capa != "OverlappingDeg_In") %>%
+    group_by(Fecha, Capa) %>%
+    summarize(`Minimum degree` = min(Grado, na.rm = T),
+              `Mean degree` = mean(Grado, na.rm = T),
+              `Maximun degree` = max(Grado, na.rm = T)) %>%
+    ungroup() %>%
+    gather(key = Serie, value = Valor, -Fecha, -Capa) %>%
+    ggplot(aes(x = Fecha, y = Valor, group = Serie, colour = Serie)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    geom_vline(xintercept = as.Date("2018-07-02"), linetype = "longdash",
+               colour = "red", alpha = 0.7) +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    facet_wrap(~Capa) +
+    scale_colour_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-day simple moving average of max, min and mean in-degree per layer",
+         subtitle = "Number of connections")
+
+ggsave(filename = "HistoricalInDegreeByLayer.pdf",
+       plot = plot_degrees_in_temporal_by_layer, device = "pdf",
+       path = path_to_write_output, scale = 2, width = 19, height = 9.5,
+       units = "cm", dpi = 300)
+
+
+
+grados_out <- map(.x = grados_temporales, .f = function(lista) return(lista[["Deg_Out"]]))
+names(grados_out) <- fechas
+grados_out <- grados_out %>%
+    bind_rows(.id = "Fecha")
+grados_out$Fecha <- grados_out$Fecha %>% as.Date()
+plot_degrees_out_temporal_by_layer <- grados_out %>%
+    gather(key = Capa, value = Grado, -Fecha, -Node) %>%
+    filter(Capa != "Agregada",
+           Capa != "OverlappingDeg_Out") %>%
+    group_by(Fecha, Capa) %>%
+    summarize(`Minimum degree` = min(Grado, na.rm = T),
+              `Mean degree` = mean(Grado, na.rm = T),
+              `Maximun degree` = max(Grado, na.rm = T)) %>%
+    ungroup() %>%
+    gather(key = Serie, value = Valor, -Fecha, -Capa) %>%
+    ggplot(aes(x = Fecha, y = Valor, group = Serie, colour = Serie)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    geom_vline(xintercept = as.Date("2018-07-02"), linetype = "longdash",
+               colour = "red", alpha = 0.7) +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    facet_wrap(~Capa) +
+    scale_colour_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-day simple moving average of max, min and mean out-degree per layer",
+         subtitle = "Number of connections")
+
+ggsave(filename = "HistoricalOutDegreeByLayer.pdf",
+       plot = plot_degrees_out_temporal_by_layer, device = "pdf",
+       path = path_to_write_output, scale = 2, width = 19, height = 9.5,
+       units = "cm", dpi = 300)
+
+
+
+grados_tot <- map(.x = grados_temporales, .f = function(lista) return(lista[["Deg_Tot"]]))
+names(grados_tot) <- fechas
+grados_tot <- grados_tot %>%
+    bind_rows(.id = "Fecha")
+grados_tot$Fecha <- grados_tot$Fecha %>% as.Date()
+plot_degrees_tot_temporal_by_layer <- grados_tot %>%
+    gather(key = Capa, value = Grado, -Fecha, -Node) %>%
+    filter(Capa != "Agregada",
+           Capa != "OverlappingDeg_Tot") %>%
+    group_by(Fecha, Capa) %>%
+    summarize(`Minimum degree` = min(Grado, na.rm = T),
+              `Mean degree` = mean(Grado, na.rm = T),
+              `Maximun degree` = max(Grado, na.rm = T)) %>%
+    ungroup() %>%
+    gather(key = Serie, value = Valor, -Fecha, -Capa) %>%
+    ggplot(aes(x = Fecha, y = Valor, group = Serie, colour = Serie)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    geom_vline(xintercept = as.Date("2018-07-02"), linetype = "longdash",
+               colour = "red", alpha = 0.7) +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    facet_wrap(~Capa) +
+    scale_colour_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-day simple moving average of max, min and mean total-degree per layer",
+         subtitle = "Number of connections")
+
+ggsave(filename = "HistoricalTotDegreeByLayer.pdf",
+       plot = plot_degrees_tot_temporal_by_layer, device = "pdf",
+       path = path_to_write_output, scale = 2, width = 19, height = 9.5,
+       units = "cm", dpi = 300)
+
+
+# Si tenemos una red no dirigida ----------------------
 
 
 grados_temporales_df <- grados_temporales %>%
@@ -155,19 +284,19 @@ ggsave(filename = "HistoricalDegreeByLayer.pdf",
 
 
 # Node activity -----------------------------------------------------------
-node_activity <- grados_temporales_df %>%
-    select(-Agregada, -OverlappingDeg) %>%
+
+# Cuando tenemos un sistema  dirigido -------------------------------------
+# In ------
+node_activity_in <- grados_in %>%
+    select(-Agregada, -OverlappingDeg_In) %>%
     gather(key = Capa, value = Valor, -Fecha, -Node) %>%
     mutate(Activo = if_else(Valor > 0, 1, 0))
 
-node_activity <- node_activity %>%
+node_activity_in <- node_activity_in %>%
     select(-Valor) %>%
     spread(key = Capa, value = Activo)
 
-
-
-# Active nodes per layer --------------------------------------------------
-actives_nodes_per_layer <- node_activity %>%
+actives_nodes_per_layer <- node_activity_in %>%
     gather(key = Capa, value = Status, -Fecha, -Node) %>%
     group_by(Fecha, Capa) %>%
     summarize(NoActiveNodes = sum(Status, na.rm = T)) %>%
@@ -185,17 +314,96 @@ actives_nodes_per_layer <- node_activity %>%
           plot.subtitle = element_text(size = 14)) +
     scale_color_viridis_d(option = "D") +
     scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
-    labs(title = "20-days moving average of the number of active banks per layer",
+    labs(title = "20-days moving average of the number of active banks per layer - in-degree",
          subtitle = "Number of institutions")
 
-ggsave(filename = "NoActivesNodesPerLayer.pdf", plot = actives_nodes_per_layer,
+ggsave(filename = "NoActivesNodesPerLayer_In.pdf", plot = actives_nodes_per_layer,
+       device = "pdf", path = path_to_write_output, scale = 2, width = 19,
+       height = 9.5, units = "cm", dpi = 400)
+
+
+# Out -----
+node_activity_out <- grados_out %>%
+    select(-Agregada, -OverlappingDeg_Out) %>%
+    gather(key = Capa, value = Valor, -Fecha, -Node) %>%
+    mutate(Activo = if_else(Valor > 0, 1, 0))
+
+node_activity_out <- node_activity_out %>%
+    select(-Valor) %>%
+    spread(key = Capa, value = Activo)
+
+actives_nodes_per_layer <- node_activity_out %>%
+    gather(key = Capa, value = Status, -Fecha, -Node) %>%
+    group_by(Fecha, Capa) %>%
+    summarize(NoActiveNodes = sum(Status, na.rm = T)) %>%
+    ggplot(aes(x = Fecha, y = NoActiveNodes, group = Capa, colour = Capa)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    scale_color_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-days moving average of the number of active banks per layer - out-degree",
+         subtitle = "Number of institutions")
+
+ggsave(filename = "NoActivesNodesPerLayer_Out.pdf", plot = actives_nodes_per_layer,
+       device = "pdf", path = path_to_write_output, scale = 2, width = 19,
+       height = 9.5, units = "cm", dpi = 400)
+
+
+# Total ---------
+node_activity_tot <- grados_tot %>%
+    select(-Agregada, -OverlappingDeg_Tot) %>%
+    gather(key = Capa, value = Valor, -Fecha, -Node) %>%
+    mutate(Activo = if_else(Valor > 0, 1, 0))
+
+node_activity_tot <- node_activity_tot %>%
+    select(-Valor) %>%
+    spread(key = Capa, value = Activo)
+
+actives_nodes_per_layer <- node_activity_tot %>%
+    gather(key = Capa, value = Status, -Fecha, -Node) %>%
+    group_by(Fecha, Capa) %>%
+    summarize(NoActiveNodes = sum(Status, na.rm = T)) %>%
+    ggplot(aes(x = Fecha, y = NoActiveNodes, group = Capa, colour = Capa)) +
+    geom_ma(ma_fun = SMA, n = 20, linetype = "solid") +
+    theme_bw() +
+    theme(axis.title = element_blank(),
+          legend.position = "bottom",
+          legend.text = element_text(size = 13),
+          legend.title = element_blank(),
+          axis.text = element_text(size = 13),
+          axis.text.x = element_text(angle = 90),
+          strip.text = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14)) +
+    scale_color_viridis_d(option = "D") +
+    scale_x_date(date_breaks = "6 months", date_labels = format("%Y-%m")) +
+    labs(title = "20-days moving average of the number of active banks per layer - total-degree",
+         subtitle = "Number of institutions")
+
+ggsave(filename = "NoActivesNodesPerLayer_Total.pdf", plot = actives_nodes_per_layer,
        device = "pdf", path = path_to_write_output, scale = 2, width = 19,
        height = 9.5, units = "cm", dpi = 400)
 
 
 
+# Cuando tenemos un sistema no dirigido -----------------------------------
+
+
+
+
 # Active layers per node --------------------------------------------------
 
+# Cuando tenemos un sistema dirigido --------------------------------------
+# In -----------
 active_layers_per_node <- node_activity %>%
     gather(key = Capa, value = Status, -Fecha, -Node) %>%
     group_by(Fecha, Node) %>%
@@ -224,6 +432,15 @@ ggsave(filename = "NoActiveLayersPerNode.pdf", plot = active_layers_per_node,
        device = "pdf", path = path_to_write_output, scale = 2, width = 19,
        height = 9.5, units = "cm", dpi = 400)
 
+# Out ---------------
+
+
+
+
+# Total ------------
+
+
+# Cuando tenemos un sistema no dirigido -----------------------------------
 
 
 
