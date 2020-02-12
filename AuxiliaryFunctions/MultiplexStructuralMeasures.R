@@ -87,7 +87,7 @@ calculate_multiplex_degree <- function(multilayer, directed = FALSE,
     degrees_df <- list(Deg_In = deg_in_df, Deg_Out = degree_out_df, Deg_Tot = degree_tot_df)
     return(degrees_df)
 
-  } else if (isFALSE(directed) & isTRUE(weighted)) {
+  } else if (isFALSE(directed) & isFALSE(weighted)) {
     degrees <- map(.x = multilayer, .f = colSums)
     degrees_df <- bind_cols(degrees)
     degrees_df$Node <- names(degrees[[1]])
