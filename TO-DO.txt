@@ -1,5 +1,15 @@
-1) Check if the implementation of the Laplacian for directed-weighted graphs gives good results
+1) Check if the implementation of the Laplacian for directed-weighted graphs gives good results,
+and if having a negative value to calculate the  distance makes sense in this setting.
+
 2) Check stopping conditions for the greedy algorithm, specifically, check that the implemented
-conditions are consistent with the methodology presented in the paper.
+conditions are consistent with the methodology presented  in the paper.
+
+
 3) Check why the degree and the number of active layers are identical for the undirected-unweighted and
-the directed-weighted multilayers.
+the directed-weighted multilayers. (DONE, they are different, implementing error)
+
+4) Add new conditions on the final selection of the optimal aggregation, specifically, a lot
+of "optimal" aggregations turn out to be the total combined network (causing funky business in
+the calculation of the systemic risk per layer)
+
+5) Make a better implementation of debtrank, results differ highly from the ones on the paper.

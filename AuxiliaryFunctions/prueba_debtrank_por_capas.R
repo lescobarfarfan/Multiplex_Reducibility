@@ -7,15 +7,21 @@
 #   -----------------------------------------------------------------------
 
 
+
+# Required imports --------------------------------------------------------
 require(NetworkRiskMeasures)
 require(igraph)
 require(tidyverse)
 require(tidyquant)
 
-# Load the data
-path_to_multilayer <- "/media/luisescobar/TRABAJO/Multilayer/Results/MulticapaTemporal_Contagio.Rds"
-path_to_mult_reduced <- "/media/luisescobar/TRABAJO/Multilayer/Results/Optimal_Aggregations.Rds"
-path_to_thresholds <- "/media/luisescobar/TRABAJO/Multilayer/Umbrales/"
+
+# Paths used troughout the course -----------------------------------------
+path_to_multilayer <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/MulticapaTemporal_Contagio_DW.Rds"
+path_to_mult_reduced <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/Optimal_Aggregations_DW.Rds"
+path_to_thresholds <- "Z:/LuisEscobar/ContagioSolvencia/parameters/Umbrales/Umbrales_8/Bancos/"
+path_to_write <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/"
+
+
 
 # Load the multiplex network
 multiplex <- readRDS(path_to_multilayer)
@@ -35,7 +41,7 @@ intersection <- dplyr::intersect(dates, files_2)
 files_3 <- files[which(str_sub(files, 1, 6) %in% intersection)]
 
 # Load the assets and capital data
-extra_data <- map(.x = paste0(path_to_thresholds, files_3), 
+extra_data <- map(.x = paste0(path_to_thresholds, files_3),
                   .f = read_csv,
                   col_names = F)
 names(extra_data) <- names(multiplex)
@@ -64,7 +70,7 @@ for (i in 1:length(extra_data)) {
 #' @import igraph
 #' @import purrr
 #' @export
-multiplex_systemic_risk <- function(multilayer, assets, capital,
+multiplex_systemic_risk <- function(multilayer, assets, capital, method = c("DR_SH", "DR"),
                                     normalized = TRUE) {
   if (any(assets == 0)) {
     assets[assets == 0] <- 0.0001
@@ -72,16 +78,24 @@ multiplex_systemic_risk <- function(multilayer, assets, capital,
   if (any(capital == 0)) {
     capital[capital == 0] <- 0.0001
   }
+
   # First, we calculate the debt rank for each node for each layer
-  
   V <- map(.x = multilayer, .f = sum)
   R <- list()
   for (i in 1:length(multilayer)) {
     layer <- names(multilayer)[i]
-    aux_dr <- NetworkRiskMeasures::contagion(exposures = multilayer[[i]],
-                                             buffer = capital, weights = assets,
-                                             shock = "all", method = "debtrank",
-                                             verbose = F)
+    if (method == "DR") {
+      aux_dr <- NetworkRiskMeasures::contagion(exposures = multilayer[[i]],
+                                               buffer = capital, weights = assets,
+                                               shock = "all", method = "debtrank",
+                                               verbose = F)
+    } else if (method == "DR_SH") {
+      aux_dr <- NetworkRiskMeasures::contagion(exposures = multilayer[[i]],
+                                               buffer = capital, weights = assets,
+                                               shock = "all", method = "debtrank",
+                                               verbose = F, single.hit = T)
+    }
+
     aux_dr_2 <- summary(aux_dr)$summary_table %>% tbl_df()
     aux_dr_2 <- aux_dr_2 %>% mutate(DebtRank = original_stress + additional_stress)
     aux_dr_2 <- aux_dr_2 %>% select(scenario, DebtRank) %>% rename(Institution = scenario)
@@ -107,18 +121,19 @@ multiplex_systemic_risk <- function(multilayer, assets, capital,
 
 
 
-# Analysis
+# Analysis -----------------------------------------------------------------
 resultados <- data.frame() %>% tbl_df()
 for (i in 1:length(multiplex)) {
-  cat("Processing date ", i, " of ", length(multiplex), "\n\n")
+  cat("Processing: ", (i/length(multiplex))*100, "%", "\n\n")
+  # cat("\014")
   aux_res <- multiplex_systemic_risk(multilayer = multiplex[[i]],
                                      assets = extra_data[[i]]$Assets,
                                      capital = extra_data[[i]]$Capital,
-                                     normalized = T)
+                                     normalized = T, method = "DR_SH")
   institutions <- names(aux_res[[1]])
   aux_res2 <- aux_res %>% bind_cols()
   aux_res2$Institution <- institutions
-  aux_res2 <- aux_res2 %>% 
+  aux_res2 <- aux_res2 %>%
     select(Institution, 1:(ncol(aux_res2) - 1))
   aux_res2$Date = names(multiplex)[i]
   aux_res2 <- aux_res2 %>%
@@ -126,15 +141,16 @@ for (i in 1:length(multiplex)) {
   aux_res2$Date <- aux_res2$Date %>% as.Date()
   resultados <- list(resultados, aux_res2) %>% bind_rows()
 }
+
 # Multiply by a 100 to make values percentages
-resultados_gather <- resultados %>% 
+resultados_gather <- resultados %>%
   gather(key = Layer, value = DebtRank, -Date, -Institution)
 resultados_gather <- resultados_gather %>%
   mutate(DebtRank = DebtRank*100)
 
 
 # Save results
-resultados_gather %>% write_csv(path = "/media/luisescobar/TRABAJO/Multilayer/Results/DebtRankPerLayer.csv",
+resultados_gather %>% write_csv(path = paste0(path_to_write, "DebtRankPerLayer_Full.csv"),
                                 col_names = T)
 
 
@@ -148,15 +164,21 @@ avg_dr_per_layer <- resultados_gather %>%
 avg_dr_per_layer_minus_agg <- avg_dr_per_layer %>%
   filter(Layer != "Agregada")
 
+avg_dr_per_layer_minus_agg$Layer <- factor(x = avg_dr_per_layer_minus_agg$Layer,
+                                           levels = c("D&L", "FX", "Cross-Holding",
+                                                      "Derivatives"),
+                                           ordered = T)
+
 avg_dr_per_layer_agg <- avg_dr_per_layer %>%
   filter(Layer == "Agregada")
 
 
 avg_dr_per_layer_minus_agg %>%
+  filter(between(x = Date, left = as.Date("2007-01-01"), right = as.Date("2013-12-31"))) %>%
   ggplot(aes(x = Date, y = AvgDebtRank, fill = Layer)) +
   geom_area() +
-  geom_line(mapping = aes(x = Date, y = AvgDebtRank, colour = Layer),
-            data = avg_dr_per_layer_agg) +
+  geom_line(mapping = aes(x = Date, y = AvgDebtRank),
+            data = avg_dr_per_layer_agg %>% filter(between(x = Date, left = as.Date("2007-01-01"), right = as.Date("2013-12-31")))) +
   theme_bw() +
   theme(axis.title = element_blank(),
         axis.text = element_text(size = 14),
@@ -169,7 +191,7 @@ avg_dr_per_layer_minus_agg %>%
   scale_x_date(date_breaks = "1 year", date_labels = format("%Y-%m")) +
   labs(title = "Normalized DebtRank per layer in the multiplex exposures network",
        subtitle = "21-days simple moving average")
-  
+
 
 
 # Maximum DebtRank per layer ----------------------------------------------
@@ -219,7 +241,8 @@ avg_dr_per_inst_minus_agg$Institution <- avg_dr_per_inst_minus_agg$Institution %
 avg_dr_per_inst_minus_agg %>%
   ggplot(aes(x = Institution, y = MeanDebtRank, fill = Layer)) +
   geom_col() +
-  geom_step(aes(x = Institution, y = MeanDebtRank, group=1, colour = Layer), data = avg_dr_per_inst_agg) +
+  geom_step(aes(x = Institution, y = MeanDebtRank, group = 1, colour = Layer),
+            data = avg_dr_per_inst_agg) +
   theme_bw() +
   theme(axis.title = element_blank(),
         axis.text.x = element_text(angle = 90),
@@ -239,5 +262,81 @@ avg_dr_per_inst_minus_agg %>%
 
 
 
+#   -----------------------------------------------------------------------
 # Analysis with the reduced multiplex system ------------------------------
+#   -----------------------------------------------------------------------
 multiplex_red <- readRDS(path_to_mult_reduced)
+multiplex <- list()
+for (i in 1:length(multiplex_red)) {
+  multiplex[[i]] <- multiplex_red[[i]][['OptimalAgg']]
+}
+names(multiplex) <- names(multiplex_red)
+
+resultados <- data.frame() %>% tbl_df()
+for (i in 1:length(multiplex)) {
+  cat("Processing: ", (i/length(multiplex))*100, "%", "\n\n")
+  # cat("\014")
+  aux_res <- multiplex_systemic_risk(multilayer = multiplex[[i]],
+                                     assets = extra_data[[i]]$Assets,
+                                     capital = extra_data[[i]]$Capital,
+                                     normalized = T, method = "DR_SH")
+  institutions <- names(aux_res[[1]])
+  aux_res2 <- aux_res %>% bind_cols()
+  aux_res2$Institution <- institutions
+  aux_res2 <- aux_res2 %>%
+    select(Institution, 1:(ncol(aux_res2) - 1))
+  aux_res2$Date = names(multiplex)[i]
+  aux_res2 <- aux_res2 %>%
+    select(Date, 1:(ncol(aux_res2) - 1))
+  aux_res2$Date <- aux_res2$Date %>% as.Date()
+  resultados <- list(resultados, aux_res2) %>% bind_rows()
+}
+
+# Multiply by a 100 to make values percentages
+resultados_gather <- resultados %>%
+  gather(key = Layer, value = DebtRank, -Date, -Institution)
+resultados_gather <- resultados_gather %>%
+  mutate(DebtRank = DebtRank*100)
+
+
+# Save results
+resultados_gather %>% write_csv(path = paste0(path_to_write, "DebtRankPerLayer_Red.csv"),
+                                col_names = T)
+
+
+
+# Average DebtRank per layer ----------------------------------------------
+# resultados_gather$DebtRank[is.na(resultados_gather$DebtRank)] <- 0
+avg_dr_per_layer <- resultados_gather %>%
+  group_by(Date, Layer) %>%
+  summarize(AvgDebtRank = mean(DebtRank, na.rm = T)) %>%
+  ungroup()
+
+avg_dr_per_layer_minus_agg <- avg_dr_per_layer %>%
+  filter(Layer != "Agregada")
+
+
+avg_dr_per_layer_agg <- avg_dr_per_layer %>%
+  filter(Layer == "Agregada")
+
+
+avg_dr_per_layer_minus_agg %>%
+  filter(between(x = Date, left = as.Date("2007-01-01"), right = as.Date("2013-12-31"))) %>%
+  ggplot(aes(x = Date, y = AvgDebtRank, fill = Layer)) +
+  # geom_area() +
+  geom_line() +
+  # geom_line(mapping = aes(x = Date, y = AvgDebtRank),
+  #           data = avg_dr_per_layer_agg %>% filter(between(x = Date, left = as.Date("2007-01-01"), right = as.Date("2013-12-31")))) +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 14),
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 14),
+        axis.text.x = element_text(angle = 90)) +
+  facet_wrap(~Layer) +
+  scale_x_date(date_breaks = "1 year", date_labels = format("%Y-%m")) +
+  labs(title = "Normalized DebtRank per layer in the multiplex exposures network",
+       subtitle = "21-days simple moving average")
