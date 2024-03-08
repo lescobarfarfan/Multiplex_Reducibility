@@ -16,10 +16,10 @@ require(tidyquant)
 
 
 # Paths used troughout the course -----------------------------------------
-path_to_multilayer <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/MulticapaTemporal_Contagio_DW.Rds"
-path_to_mult_reduced <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/Optimal_Aggregations_DW.Rds"
-path_to_thresholds <- "Z:/LuisEscobar/ContagioSolvencia/parameters/Umbrales/Umbrales_8/Bancos/"
-path_to_write <- "C:/Users/K15523/Documents/Trabajo/Multiplex_Reducibility/ContagionProjectMatrices/Results_202002/Directed-Weighted/"
+path_to_multilayer <- ""
+path_to_mult_reduced <- ""
+path_to_thresholds <- ""
+path_to_write <- ""
 
 
 
